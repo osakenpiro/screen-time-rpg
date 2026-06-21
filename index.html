@@ -1,46 +1,472 @@
-# orb616 untracked-backup 差分通知 → SES-616窓
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画面録（がめんろく） — スクリーンタイムRPG</title>
+<meta name="description" content="スクリーンタイムを罪悪感じゃなく『鍛えているステータス』として読む。アプリの時間が6系統のXPになり、過剰は状態異常に。攻略は数字じゃなく“調和”。Boolean→Float。">
+<meta property="og:title" content="画面録 — スクリーンタイムRPG">
+<meta property="og:description" content="あなたの一週間は、どんな六角形？ 画面の時間をステータスに読み替える。攻略はバランス（調和）。">
+<meta property="og:url" content="https://osakenpiro.github.io/screen-time-rpg/">
+<meta property="og:type" content="website">
+<style>
+  :root{
+    --void:#0a0a0f; --void-deep:#06060a; --panel:#15141a; --panel-hi:#1c1a23; --line:#26242e;
+    --gold:#d4a853; --gold-dim:#8a7038; --gold-soft:rgba(212,168,83,.12); --gold-glow:rgba(212,168,83,.30);
+    --ink:#e8e0d0; --ink-2:#b8b0a0; --ink-3:#807868; --dim:#5a5448;
+    --warn:#d97b6c; --warn-soft:rgba(217,123,108,.10); --ok:#7fd4a8;
+    --serif:"Cormorant Garamond","Hiragino Mincho ProN","Yu Mincho",serif;
+    --sans:"Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+    /* 系統識別ドット（減彩・データ面はgold統一） */
+    --c-phi:#9a8bc0; --c-cre:#c08aa0; --c-out:#c9925a; --c-vit:#7faa86; --c-exp:#c4b06a; --c-tec:#6f8fb0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--void);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;line-height:1.7;}
+  body{min-height:100vh;background:radial-gradient(1100px 640px at 74% -14%,#161320 0%,transparent 60%),radial-gradient(820px 540px at 6% 114%,#0e1119 0%,transparent 55%),var(--void);}
+  #stars{position:fixed;inset:0;z-index:0;pointer-events:none;}
+  .wrap{position:relative;z-index:1;max-width:620px;margin:0 auto;padding:22px 16px 60px;}
 
-- 発: SES-619継続窓（rehem）/ 2026-06-20 JST / SES-620 gate④ の処理
-- 対象窓: SES-616（③0.5の魔女 / ②TSG / ①note の 3track）＋ SES-617（Mercari）
-- 結果区分: **全クリア（誤検知訂正）** — 復旧作業は不要
+  header{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:13px;flex-wrap:wrap;}
+  .logo{font-family:var(--serif);font-style:italic;font-size:30px;letter-spacing:.06em;color:var(--gold);text-shadow:0 0 18px var(--gold-glow);}
+  .logo small{display:block;font-family:var(--sans);font-style:normal;font-size:9.5px;letter-spacing:.34em;color:var(--ink-3);margin-top:4px;}
+  .tag{margin-left:auto;font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink-3);}
+  .lead{font-family:var(--serif);font-size:15px;line-height:1.95;color:#cdc7bb;margin:16px 0 6px;}
+  .lead b{color:var(--gold);font-style:italic;}
 
-## 結論（3行）
-- `%TEMP%\orb616-untracked-backup\` の2ファイルは **origin/main とバイト完全一致**（5957B / 4066B）。未push編集なし・データ損失なし。
-- SES-620 gate④の「DIVERGED＝未push編集の可能性」は **誤検知**。git の "untracked would be overwritten by merge" は*コンフリクト*であって*内容相違*ではない。
-- → **backup は削除して安全**。突合（recover）作業は不要。残るのは根因の掃除だけ。
+  .card{margin:16px 0;border:1px solid var(--line);border-radius:9px;padding:16px 16px 18px;background:rgba(255,255,255,.012);}
+  .card h2{font-size:11px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);margin:0 0 13px;}
+  .card h2 .jp{font-size:12px;letter-spacing:.06em;text-transform:none;color:var(--ink-2);margin-left:8px;}
 
-## 検証（このrehemで実走）
-backup実体（host `%TEMP%\orb616-untracked-backup\`、LastWrite 12:04 / 12:06 JST）:
+  /* input rows */
+  .crow{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(200,184,160,.05);}
+  .crow:last-child{border-bottom:none;}
+  .crow .nm{font-size:13.5px;color:var(--ink);}
+  .crow .ax{font-size:10px;color:var(--ink-3);letter-spacing:.04em;}
+  .crow .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+  .crow input{width:74px;background:#0f0e14;border:1px solid var(--line);border-radius:5px;color:var(--gold);
+    font-family:var(--mono);font-size:15px;text-align:right;padding:7px 8px;outline:none;transition:border-color .15s;}
+  .crow input:focus{border-color:var(--gold-dim);}
+  .crow .unit{font-size:11px;color:var(--ink-3);width:14px;}
+  .appbox{width:100%;margin-top:6px;background:#0f0e14;border:1px solid var(--line);border-radius:6px;color:var(--ink);
+    font-family:var(--sans);font-size:13px;padding:9px 10px;outline:none;resize:vertical;min-height:40px;}
+  .appbox:focus{border-color:var(--gold-dim);}
+  .hint{font-size:11px;color:var(--dim);margin-top:7px;line-height:1.7;}
+  .acts{display:flex;gap:9px;margin-top:13px;flex-wrap:wrap;}
+  .btn{cursor:pointer;border:1px solid var(--gold-dim);background:transparent;color:var(--gold);padding:10px 15px;border-radius:5px;
+    letter-spacing:.08em;font-size:13px;font-family:var(--sans);transition:all .18s;}
+  .btn:hover{background:var(--gold);color:var(--void);box-shadow:0 0 20px var(--gold-glow);}
+  .btn.ghost{border-color:var(--line);color:var(--ink-3);} .btn.ghost:hover{background:rgba(255,255,255,.03);color:var(--ink);box-shadow:none;}
 
-| ファイル | bytes | origin/main |
-|---|---|---|
-| `2026-06-20-cow-ses616-hems-3track-blockers.md` | 5957 | byte一致・diff=0 |
-| `2026-06-20-cow-ses616-mercari-auction-optimize.md` | 4066 | byte一致・diff=0 |
+  /* harmony hero */
+  .hero{text-align:center;border:1px solid var(--gold-dim);border-radius:11px;padding:20px 16px 18px;position:relative;overflow:hidden;
+    background:radial-gradient(440px 200px at 50% -10%,rgba(212,168,83,.06),transparent 70%),linear-gradient(180deg,#12111a,#0c0b12);}
+  .hero .cap{font-size:10px;letter-spacing:.3em;color:var(--ink-3);text-transform:uppercase;}
+  .hero .harm{font-family:var(--mono);font-size:clamp(38px,12vw,60px);font-weight:700;color:var(--gold);text-shadow:0 0 24px var(--gold-glow);line-height:1.04;margin:3px 0 2px;font-variant-numeric:tabular-nums;}
+  .hero .htrack{height:9px;border-radius:6px;background:#1a1922;border:1px solid var(--line);overflow:hidden;margin:10px auto 6px;max-width:320px;position:relative;}
+  .hero .htrack i{position:absolute;inset:0 auto 0 0;border-radius:6px;background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width .6s cubic-bezier(.2,.7,.2,1);}
+  .hero .verdict{font-family:var(--serif);font-style:italic;font-size:16px;color:#ddd6c8;min-height:22px;margin-top:6px;}
+  .hero .badge{display:inline-block;margin-top:8px;font-size:11px;letter-spacing:.14em;padding:5px 12px;border-radius:20px;border:1px solid var(--gold-dim);color:var(--gold);}
+  .hero .badge.clear{border-color:var(--ok);color:var(--ok);}
+  .lvline{display:flex;justify-content:center;gap:22px;margin-top:13px;font-size:11.5px;color:var(--ink-3);}
+  .lvline b{color:var(--ink);font-family:var(--mono);font-size:15px;}
+  .lvline .mut{display:block;font-size:9.5px;color:var(--dim);letter-spacing:.02em;margin-top:1px;}
 
-- origin/main の同名handoff を GitHub API raw 取得（HTTP200・5957/4066 bytes）→ CR正規化の前後とも **内容diff=0**。サイズも完全一致＝行末含めバイト同一。
-- 既知commit照合: 3track=`c52da40b` / Mercari=`c385691c`（MEMORY.md台帳と一致）。
+  /* hexagon */
+  .hexwrap{display:flex;justify-content:center;margin:6px 0 2px;}
+  svg.hex{width:100%;max-width:340px;height:auto;}
+  svg.hex .grid{fill:none;stroke:rgba(200,184,160,.10);stroke-width:1;}
+  svg.hex .spoke{stroke:rgba(200,184,160,.08);stroke-width:1;}
+  svg.hex .poly{fill:var(--gold-soft);stroke:var(--gold);stroke-width:1.6;stroke-linejoin:round;}
+  svg.hex .vtx{fill:var(--gold);}
+  svg.hex .vtx.aff{fill:var(--warn);}
+  svg.hex .lab{font-family:var(--sans);font-size:10.5px;fill:var(--ink-2);}
+  svg.hex .labv{font-family:var(--mono);font-size:9px;fill:var(--ink-3);}
 
-## なぜ起きたか（根因・まだ生きてる）
-- cs運用＝**API直PUTで origin へ push**。このときローカル作業コピーには同名ファイルが **未追跡(untracked) で残る**。
-- orb-sync の pull が毎回この未追跡dupeに躓き（"untracked would be overwritten"）→ 非破壊で `%TEMP%` へ退避して pull、を **繰り返している**。
-- backup の LastWrite(12:04/12:06) が SES-620 hem(08:34) より後＝**退避ループが継続中**の証拠。内容同一なので無害だが、毎回 temp を上書きするノイズ。
+  /* bars (miharashi grammar) */
+  .rpg-grid{display:grid;grid-template-columns:84px 1fr 56px 40px;align-items:center;gap:9px;padding:5px 0;}
+  .rpg-grid .label{font-size:12px;color:var(--ink-2);}
+  .rpg-grid .label .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+  .rpg-grid .bar{height:9px;border-radius:5px;background:#1a1922;border:1px solid var(--line);overflow:hidden;position:relative;}
+  .rpg-grid .bar i{position:absolute;inset:0 auto 0 0;border-radius:5px;background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width .6s cubic-bezier(.2,.7,.2,1);}
+  .rpg-grid .bar i.aff{background:linear-gradient(90deg,#6e4038,var(--warn));}
+  .rpg-grid .value{font-family:var(--mono);font-size:12px;color:var(--gold);text-align:right;}
+  .rpg-grid .pct{font-family:var(--mono);font-size:10px;color:var(--ink-3);text-align:right;}
 
-## 推奨アクション
-1. **backup削除でOK**（中身=origin と同一の冗長コピー）:
-   ```powershell
-   Remove-Item -Recurse -Force "$env:TEMP\orb616-untracked-backup"
-   ```
-2. **根因を断つ（推奨）** — ローカルcsクローンの未追跡dupe 2件を掃除すれば、次回pullはtracked版で素通りし退避ループが止まる:
-   ```powershell
-   git -C <cs-clone> status --porcelain | Select-String 'ses616'   # 2件確認
-   # 該当の未追跡ファイルを削除（または git clean -i で対話的に）
-   ```
-   ※cloneパス未確定。OrbSync スケジュールタスクの作業dir を使うこと。
-3. 原本データは **%TEMP% backup と origin の両方に健在**（二重保全）。削除しても origin に正本が残るので復旧不能リスクなし。
+  .ail{border:1px solid var(--warn);background:var(--warn-soft);border-radius:7px;padding:11px 13px;margin:8px 0;}
+  .ail .t{font-size:13.5px;color:var(--warn);font-weight:500;}
+  .ail .t .lvl{font-size:10px;color:var(--ink-3);margin-left:8px;letter-spacing:.08em;}
+  .ail .d{font-size:12px;color:var(--ink-2);margin-top:4px;line-height:1.7;}
+  .none{font-size:12.5px;color:var(--ink-3);font-style:italic;font-family:var(--serif);}
 
-## SES-620 gate④ への訂正
-gate④「`%TEMP%\orb616-untracked-backup\` のローカル残骸が origin版とDIVERGED。未push編集があったか突合を」
-→ **実測で内容バイト一致。突合不要・データは元から無傷**。残作業は「削除＋未追跡掃除」のみ（データ復旧ではない）。
+  .skills{display:flex;flex-wrap:wrap;gap:8px;}
+  .skill{border:1px solid var(--line);border-radius:6px;padding:8px 11px;font-size:12px;background:rgba(255,255,255,.012);}
+  .skill b{color:var(--gold);font-weight:500;}
+  .skill .s{display:block;font-size:9.5px;color:var(--ink-3);letter-spacing:.06em;margin-top:2px;}
 
----
-*検証元: GH API raw（osakenpiro/claude-shared@main）＋ host `%TEMP%` 実ファイル。byte/内容ともに照合済み。*
+  .tip{font-family:var(--serif);font-size:14px;line-height:1.9;color:#cdc7bb;}
+  .tip b{color:var(--gold);font-style:italic;}
+
+  footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-3);line-height:1.9;}
+  footer b{color:var(--gold-dim);font-family:var(--serif);font-style:italic;font-size:12.5px;}
+  footer a{color:var(--ink-2);}
+  .priv{color:var(--dim);font-size:10.5px;margin-top:8px;}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="wrap">
+  <header>
+    <div class="logo">画面録<small>GAMENROKU ／ SCREEN TIME RPG</small></div>
+    <div class="tag">あなたの一週間は、どんな六角形？</div>
+  </header>
+
+  <p class="lead">スクリーンタイムは「無駄にした時間」じゃない。画面の前で過ごした時間は、すでに<b>何かのステータス</b>を鍛えている。
+  問いは「使いすぎたか（はい／いいえ）」じゃなく、<b>どんな偏りで character を組んでいるか</b>。
+  攻略は時間をゼロにすることでも、数字を最大化することでもない——<b>調和を、整えること</b>。</p>
+
+  <!-- INPUT -->
+  <div class="card">
+    <h2>① 手入力<span class="jp">iOS設定 → スクリーンタイム → カテゴリ別の週合計（時間）を打つ</span></h2>
+    <div id="inputs"></div>
+    <h2 style="margin-top:16px">② よく開いたアプリ<span class="jp">（任意・カンマ区切り → 技として鑑定）</span></h2>
+    <textarea class="appbox" id="apps" placeholder="例：GitHub, Clip Studio, X, Kindle, Duolingo, ヘルスケア"></textarea>
+    <div class="acts">
+      <button class="btn ghost" id="sampleBtn">サンプルを入れる</button>
+      <button class="btn ghost" id="resetBtn">リセット</button>
+    </div>
+    <p class="hint">※ 時間は1週間ぶんの合計を「時間」で（例：7.5＝7時間30分）。データは端末のブラウザにだけ保存され、どこにも送られない。</p>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="cap">調和　HARMONY</div>
+    <div class="harm" id="harm">—</div>
+    <div class="htrack"><i id="harmFill" style="width:0%"></i></div>
+    <div class="verdict" id="verdict">時間を入れると、ビルドが立ち上がる。</div>
+    <div class="badge" id="badge" style="display:none"></div>
+    <div class="lvline">
+      <span>鍛錬量 <b id="lv">0</b><span class="mut">Lv ⌊XP/847⌋・多ければいいわけじゃない</span></span>
+      <span>総XP <b id="xp">0</b><span class="mut">＝今週の総時間（分）</span></span>
+    </div>
+  </div>
+
+  <!-- HEXAGON -->
+  <div class="card">
+    <h2>ステータス<span class="jp">6系統レーダー（正六角形に近いほどバランス良）</span></h2>
+    <div class="hexwrap"><svg class="hex" id="hex" viewBox="0 0 340 300"></svg></div>
+    <div id="bars" style="margin-top:6px"></div>
+  </div>
+
+  <!-- AILMENTS -->
+  <div class="card">
+    <h2>状態異常<span class="jp">過剰は呪いに転ぶ（Boolean→Float）</span></h2>
+    <div id="ailments"></div>
+  </div>
+
+  <!-- SKILLS -->
+  <div class="card">
+    <h2>習得した技<span class="jp">よく開いたアプリの鑑定</span></h2>
+    <div class="skills" id="skills"><span class="none">アプリを入れると、技が鑑定される。</span></div>
+  </div>
+
+  <!-- TIP -->
+  <div class="card">
+    <h2>攻略ヒント</h2>
+    <p class="tip" id="tip">—</p>
+    <div class="acts"><button class="btn" id="shareBtn">この一週間をシェア</button></div>
+  </div>
+
+  <footer>
+    <b>画面録 / GAMENROKU — Screen Time RPG</b><br>
+    アプリの時間が6系統（哲学・創作・技術・発信・体力・探究）のXPになり、過剰は状態異常に。攻略は数字じゃなく<b style="color:var(--ink-2);font-style:normal">調和</b>。
+    設計思想：Boolean→Float（時間は連続値）。#全人類UX改善 ／ Visionium・アイデア苗床。
+    <div class="priv">🔒 入力はこの端末のブラウザ（localStorage）だけに保存。サーバー送信なし。iOS Screen Time APIは非公開のため v0 は手入力。</div>
+  </footer>
+</div>
+
+<script>
+/* ============================ config ============================ */
+// 6系統（正準・RPG Status DB準拠）。order = 六角形を上から時計回り。
+const AXES = [
+  {k:'PHI', jp:'哲学', col:'var(--c-phi)'},
+  {k:'CRE', jp:'創作', col:'var(--c-cre)'},
+  {k:'OUT', jp:'発信', col:'var(--c-out)'},
+  {k:'VIT', jp:'体力', col:'var(--c-vit)'},
+  {k:'EXP', jp:'探究', col:'var(--c-exp)'},
+  {k:'TEC', jp:'技術', col:'var(--c-tec)'},
+];
+const AXI = Object.fromEntries(AXES.map((a,i)=>[a.k,i]));
+
+// iOSカテゴリ → 6系統重み(合計≒1) ＋ 過剰→状態異常
+const CATS = [
+  {id:'social', nm:'ソーシャル',          w:{OUT:.8,PHI:.1,EXP:.1}, thr:7,  ail:{name:'無限スクロールの呪縛', kind:'呪い'}},
+  {id:'enter',  nm:'エンタメ（動画・配信）', w:{VIT:.5,EXP:.3,PHI:.2}, thr:12, ail:{name:'惰性のとろみ',       kind:'状態異常'}},
+  {id:'games',  nm:'ゲーム',              w:{EXP:.6,CRE:.3,VIT:.1}, thr:12, ail:{name:'没入のとりつかれ',   kind:'状態異常'}},
+  {id:'create', nm:'創作',                w:{CRE:1.0}},
+  {id:'prod',   nm:'仕事効率化・金融',     w:{TEC:.6,OUT:.4}},
+  {id:'dev',    nm:'開発ツール',           w:{TEC:1.0}},
+  {id:'read',   nm:'情報・読書',           w:{PHI:.7,EXP:.3}},
+  {id:'edu',    nm:'教育',                w:{EXP:.8,PHI:.2}},
+  {id:'health', nm:'健康・フィットネス',    w:{VIT:1.0}},
+  {id:'travel', nm:'旅行・ナビ',           w:{EXP:.7,VIT:.3}},
+  {id:'shop',   nm:'買い物・食',           w:{VIT:.2}, thr:6, ail:{name:'浪費のうずき', kind:'状態異常'}},
+  {id:'other',  nm:'その他・ユーティリティ', w:{}},
+];
+
+// アプリ → 技・スキル辞書（部分一致・小文字）
+const SKILLDIC = [
+  {m:['x','twitter','ツイッター'], n:'拡声の術',   ax:'OUT', note:'※過ぎれば呪い'},
+  {m:['instagram','インスタ'],     n:'魅せの構え', ax:'OUT'},
+  {m:['tiktok','ティックトック'],   n:'奔流の渦',   ax:'OUT', note:'※呪い寄り'},
+  {m:['youtube','ユーチューブ'],   n:'観の眼',     ax:'EXP'},
+  {m:['netflix','ネトフリ','prime','アマプラ','配信'], n:'物語の浸り', ax:'VIT'},
+  {m:['clip studio','クリスタ','procreate','ibis','アイビス','お絵描き','イラスト'], n:'彩色の極み', ax:'CRE'},
+  {m:['github','ギットハブ'],       n:'鍛冶の手',   ax:'TEC'},
+  {m:['vscode','vs code','xcode','terminal','ターミナル'], n:'構築の理', ax:'TEC'},
+  {m:['notion'],                   n:'整序の章',   ax:'TEC'},
+  {m:['obsidian','オブシ'],         n:'結叢の網',   ax:'PHI'},
+  {m:['duolingo','デュオ','anki','語学'], n:'語学の心得', ax:'EXP'},
+  {m:['kindle','読書','本','booklive'], n:'読みの灯', ax:'PHI'},
+  {m:['spotify','apple music','音楽','suno'], n:'律動の伴', ax:'CRE'},
+  {m:['maps','地図','google map','ナビ'], n:'踏破の地図', ax:'EXP'},
+  {m:['health','ヘルスケア','fitness','strava','歩'], n:'身体の声', ax:'VIT'},
+  {m:['rpgツクール','ツクール','unity','blender','godot'], n:'世界鍛冶', ax:'CRE'},
+  {m:['chatgpt','claude','gpt','ai'], n:'対話の鏡', ax:'PHI'},
+];
+
+const SAMPLE = {social:8, enter:6, games:4, create:5, prod:6, dev:7, read:3, edu:2, health:2.5, travel:1, shop:1.5, other:2};
+const SAMPLE_APPS = 'GitHub, Clip Studio, X, Kindle, Duolingo, ヘルスケア';
+
+const KEY='gamenroku_v0';
+
+/* ============================ state ============================ */
+let H = load();
+function load(){
+  let s={hours:{}, apps:''};
+  try{ const r=JSON.parse(localStorage.getItem(KEY)); if(r) s=Object.assign(s,r);}catch(e){}
+  return s;
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(H)); }catch(e){} }
+
+/* ============================ build inputs ============================ */
+function dot(col){ return `<span class="dot" style="background:${col}"></span>`; }
+function primaryAxis(w){ let best=null,bv=-1; for(const k in w){ if(w[k]>bv){bv=w[k];best=k;} } return best; }
+function axisLabelForCat(c){
+  const keys=Object.keys(c.w); if(!keys.length) return '中立';
+  return keys.map(k=>`${dot(AXES[AXI[k]].col)}${k}`).join(' ');
+}
+function buildInputs(){
+  const box=document.getElementById('inputs');
+  box.innerHTML = CATS.map(c=>`
+    <div class="crow">
+      <span class="nm">${c.nm}<br><span class="ax">${axisLabelForCat(c)}${c.ail?` ・<span style="color:var(--warn)">⚠${c.ail.kind}</span>`:''}</span></span>
+      <input type="text" inputmode="decimal" id="in_${c.id}" value="${H.hours[c.id]??''}" placeholder="0">
+      <span class="unit">h</span>
+    </div>`).join('');
+  CATS.forEach(c=>{
+    document.getElementById('in_'+c.id).addEventListener('input', e=>{
+      const v=parseFloat(e.target.value); H.hours[c.id]=isNaN(v)?0:v; save(); compute();
+    });
+  });
+  const ap=document.getElementById('apps'); ap.value=H.apps||'';
+  ap.addEventListener('input', e=>{ H.apps=e.target.value; save(); compute(); });
+}
+
+/* ============================ compute ============================ */
+function compute(){
+  // XP per axis (1 min = 1 XP)
+  const xp={}; AXES.forEach(a=>xp[a.k]=0);
+  const afflicted={};
+  const ailments=[];
+  let totalHours=0;
+  CATS.forEach(c=>{
+    const h=H.hours[c.id]||0; totalHours+=h;
+    const min=h*60;
+    for(const k in c.w){ xp[k]+= min*c.w[k]; }
+    if(c.ail && c.thr && h>c.thr){
+      const inten=Math.min(1,(h-c.thr)/c.thr);
+      const ax=primaryAxis(c.w);
+      afflicted[ax]=Math.max(afflicted[ax]||0,inten);
+      ailments.push({...c.ail, ax, inten, over:(h-c.thr)});
+    }
+  });
+  const total=AXES.reduce((s,a)=>s+xp[a.k],0);
+  // harmony = normalized shannon entropy
+  let Hs=0; if(total>0){ AXES.forEach(a=>{ const p=xp[a.k]/total; if(p>0) Hs-=p*Math.log(p); }); }
+  const harmony = total>0 ? Hs/Math.log(AXES.length) : 0;
+  const lv = Math.floor(total/847);
+  // global checks
+  const usedAxes = AXES.filter(a=>xp[a.k]>0).length;
+  if(totalHours>56) ailments.push({name:'過暴露（オーバーエクスポージャー）', kind:'状態異常', ax:null, inten:Math.min(1,(totalHours-56)/56), over:totalHours-56, global:true});
+  let topShare=0, topAx=null; AXES.forEach(a=>{ const sh=total>0?xp[a.k]/total:0; if(sh>topShare){topShare=sh;topAx=a.k;} });
+  if(topShare>0.55 && total>0) ailments.push({name:`${AXES[AXI[topAx]].jp}への偏り`, kind:'偏り', ax:topAx, inten:Math.min(1,(topShare-0.55)/0.45), over:0, skew:true});
+
+  render({xp,total,harmony,lv,afflicted,ailments,totalHours,usedAxes,topShare,topAx});
+}
+
+/* ============================ render ============================ */
+function render(d){
+  const {xp,total,harmony,lv,afflicted,ailments,totalHours,usedAxes,topAx}=d;
+  // hero
+  document.getElementById('harm').textContent = total>0 ? harmony.toFixed(2) : '—';
+  document.getElementById('harmFill').style.width = (harmony*100)+'%';
+  document.getElementById('lv').textContent = lv;
+  document.getElementById('xp').textContent = Math.round(total).toLocaleString();
+  // verdict + clear badge
+  const realAil = ailments.filter(a=>!a.skew);
+  const clear = total>0 && harmony>=0.75 && realAil.length===0;
+  const badge=document.getElementById('badge');
+  if(total<=0){ badge.style.display='none'; }
+  else { badge.style.display='inline-block';
+    if(clear){ badge.className='badge clear'; badge.textContent='✦ バランス・クリア'; }
+    else { badge.className='badge'; badge.textContent= harmony>=0.6 ? '整いつつある' : '偏りビルド'; }
+  }
+  document.getElementById('verdict').textContent = verdictText(total,harmony,usedAxes,clear);
+  // hexagon + bars
+  drawHex(xp,afflicted);
+  drawBars(xp,afflicted);
+  // ailments
+  const ab=document.getElementById('ailments');
+  if(!ailments.length){ ab.innerHTML = total>0 ? '<span class="none">状態異常なし。澄んでいる。</span>' : '<span class="none">—</span>'; }
+  else ab.innerHTML = ailments.map(a=>{
+    const lvl = a.inten>=0.66?'重':a.inten>=0.33?'中':'軽';
+    return `<div class="ail"><div class="t">${a.kind}「${a.name}」<span class="lvl">強度 ${a.inten.toFixed(2)}・${lvl}</span></div>
+      <div class="d">${ailHint(a)}</div></div>`;
+  }).join('');
+  // skills
+  drawSkills();
+  // tip
+  document.getElementById('tip').innerHTML = tipText(d, realAil);
+}
+
+function verdictText(total,harmony,used,clear){
+  if(total<=0) return '時間を入れると、ビルドが立ち上がる。';
+  if(clear) return '六角形が、よく満ちている。';
+  if(harmony>=0.6) return `${used}系統に手が伸びている。あと一歩で円になる。`;
+  if(harmony>=0.4) return 'いくつかの軸に偏っている。手つかずの森がある。';
+  return '一点に火が集まっている。それも一つのビルドだ。';
+}
+
+function drawHex(xp,afflicted){
+  const svg=document.getElementById('hex');
+  const cx=170, cy=150, R=98;
+  const maxv=Math.max(...AXES.map(a=>xp[a.k]),1);
+  const pt=(i,r)=>{ const ang=(-90+60*i)*Math.PI/180; return [cx+r*Math.cos(ang), cy+r*Math.sin(ang)]; };
+  let s='';
+  // grid rings
+  [0.25,0.5,0.75,1].forEach(g=>{
+    const pts=AXES.map((a,i)=>pt(i,R*g).map(n=>n.toFixed(1)).join(',')).join(' ');
+    s+=`<polygon class="grid" points="${pts}"/>`;
+  });
+  // spokes
+  AXES.forEach((a,i)=>{ const[x,y]=pt(i,R); s+=`<line class="spoke" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`; });
+  // data polygon
+  const dpts=AXES.map((a,i)=>{ const r=R*(xp[a.k]/maxv); return pt(i,r).map(n=>n.toFixed(1)).join(','); });
+  s+=`<polygon class="poly" points="${dpts.join(' ')}"/>`;
+  // vertices
+  AXES.forEach((a,i)=>{ const r=R*(xp[a.k]/maxv); const[x,y]=pt(i,r);
+    const aff=afflicted[a.k]>0?' aff':''; s+=`<circle class="vtx${aff}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${xp[a.k]>0?3:1.6}"/>`; });
+  // labels
+  AXES.forEach((a,i)=>{ const[x,y]=pt(i,R+20); const anc = Math.abs(x-cx)<6?'middle':(x>cx?'start':'end');
+    s+=`<circle cx="${(x- (anc==='end'?34:anc==='start'?-2:14)).toFixed(1)}" cy="${(y-3).toFixed(1)}" r="3" fill="${a.col}"/>`;
+    s+=`<text class="lab" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anc}">${a.jp}</text>`;
+    s+=`<text class="labv" x="${x.toFixed(1)}" y="${(y+12).toFixed(1)}" text-anchor="${anc}">${a.k}</text>`;
+  });
+  svg.innerHTML=s;
+}
+
+function drawBars(xp,afflicted){
+  const max=Math.max(...AXES.map(a=>xp[a.k]),1);
+  const total=AXES.reduce((s,a)=>s+xp[a.k],0);
+  document.getElementById('bars').innerHTML = AXES.map(a=>{
+    const v=xp[a.k], pct=max>0?(v/max*100):0, share=total>0?(v/total*100):0;
+    const aff=afflicted[a.k]>0?' aff':'';
+    return `<div class="rpg-grid">
+      <span class="label">${dot(a.col)}${a.k} ${a.jp}</span>
+      <span class="bar"><i class="${aff}" style="width:${pct.toFixed(1)}%"></i></span>
+      <span class="value">${Math.round(v).toLocaleString()}</span>
+      <span class="pct">${share.toFixed(0)}%</span>
+    </div>`;
+  }).join('');
+}
+
+function drawSkills(){
+  const raw=(H.apps||'').split(/[,、\n]+/).map(s=>s.trim()).filter(Boolean);
+  const box=document.getElementById('skills');
+  if(!raw.length){ box.innerHTML='<span class="none">アプリを入れると、技が鑑定される。</span>'; return; }
+  const seen=new Set();
+  box.innerHTML = raw.map(name=>{
+    const low=name.toLowerCase();
+    const hit=SKILLDIC.find(d=>d.m.some(m=>low.includes(m)));
+    if(hit){ if(seen.has(hit.n)) return ''; seen.add(hit.n);
+      const ax=AXES[AXI[hit.ax]];
+      return `<div class="skill"><b>${hit.n}</b><span class="s">${dot(ax.col)}${hit.ax} ${ax.jp}${hit.note?' '+hit.note:''} ← ${name}</span></div>`;
+    }
+    return `<div class="skill"><b>未鑑定の技</b><span class="s">${name}</span></div>`;
+  }).join('') || '<span class="none">—</span>';
+}
+
+function ailHint(a){
+  if(a.global) return `今週は合計が多め（${a.over.toFixed(1)}h 超過）。攻略は削減ノルマじゃない。眠りと、画面のない時間を一つ取り戻すだけで霧は晴れる。`;
+  if(a.skew) return `この系統に火が集まりすぎ。悪いことじゃないが、円は欠ける。<b style="color:var(--ink-2)">他の軸を足す</b>と、偏りはひとりでに薄まる。`;
+  const ax=a.ax?AXES[AXI[a.ax]].jp:'';
+  return `${ax}の${a.kind}。閾値を ${a.over.toFixed(1)}h 超えたぶんだけ濃くなる連続値。<b style="color:var(--ink-2)">解呪</b>＝ゼロにするのではなく、少しだけ手を離す。`;
+}
+
+function tipText(d, realAil){
+  const {xp,total,harmony,topAx}=d;
+  if(total<=0) return 'まずは「サンプルを入れる」で、ビルドの読み方を体感してみて。';
+  // neglected axis (lowest)
+  let lowAx=null,lv=Infinity; AXES.forEach(a=>{ if(xp[a.k]<lv){lv=xp[a.k];lowAx=a.k;} });
+  const low=AXES[AXI[lowAx]];
+  if(harmony>=0.75 && realAil.length===0){
+    return `見事な円。<b>${low.jp}（${low.k}）</b>がいちばん薄いけれど、それは伸びしろ。いまの均衡を、来週も。`;
+  }
+  let t='';
+  if(realAil.length){
+    const worst=realAil.slice().sort((a,b)=>b.inten-a.inten)[0];
+    t += `まず<b>「${worst.name}」</b>から少し手を離す。ゼロにしなくていい、閾値の内側に戻すだけ。`;
+  }
+  t += ` そして攻略の本筋は削ることより<b>足すこと</b>——手つかずの<b>${low.jp}（${low.k}）</b>に、今週30分の火を入れてみる。円は、欠けた側から丸くなる。`;
+  return t;
+}
+
+/* ============================ buttons ============================ */
+document.getElementById('sampleBtn').addEventListener('click',()=>{
+  H.hours={...SAMPLE}; H.apps=SAMPLE_APPS; save(); buildInputs(); compute();
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  H={hours:{},apps:''}; save(); buildInputs(); compute();
+});
+document.getElementById('shareBtn').addEventListener('click',shareBuild);
+function shareBuild(){
+  const xp={}; AXES.forEach(a=>xp[a.k]=0); let total=0;
+  CATS.forEach(c=>{ const h=H.hours[c.id]||0; const min=h*60; for(const k in c.w){xp[k]+=min*c.w[k]; total+=0;} });
+  const tot=AXES.reduce((s,a)=>s+xp[a.k],0);
+  let Hs=0; if(tot>0){ AXES.forEach(a=>{const p=xp[a.k]/tot; if(p>0)Hs-=p*Math.log(p);}); }
+  const harmony=tot>0?Hs/Math.log(AXES.length):0;
+  const top=AXES.slice().sort((a,b)=>xp[b.k]-xp[a.k]).slice(0,2).map(a=>a.jp).join('・');
+  const txt = tot>0
+    ? `画面録｜今週のビルド：調和 ${harmony.toFixed(2)}。よく育った系統は ${top}。あなたの一週間はどんな六角形？ #全人類UX改善`
+    : `画面録 — スクリーンタイムを“鍛えているステータス”として読むRPG。あなたの一週間はどんな六角形？ #全人類UX改善`;
+  const url='https://osakenpiro.github.io/screen-time-rpg/';
+  if(navigator.share){ navigator.share({title:'画面録', text:txt, url}).catch(()=>{}); }
+  else { navigator.clipboard.writeText(txt+' '+url).then(()=>{
+    const b=document.getElementById('shareBtn'); const o=b.textContent; b.textContent='コピーした'; setTimeout(()=>b.textContent=o,1400);
+  }).catch(()=>{}); }
+}
+
+/* ============================ starfield ============================ */
+(function(){ const c=document.getElementById('stars'); if(!c||!c.getContext) return; const x=c.getContext('2d'); let w,h,st;
+  function rs(){ w=c.width=innerWidth; h=c.height=innerHeight; st=Array.from({length:Math.min(110,Math.floor(w*h/12000))},()=>({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.1+0.2,a:Math.random()*0.5+0.12,t:Math.random()*6.28})); }
+  function d(){ x.clearRect(0,0,w,h); for(const s of st){ s.t+=0.009; const tw=s.a*(0.6+0.4*Math.sin(s.t)); x.beginPath(); x.arc(s.x,s.y,s.r,0,6.28); x.fillStyle='rgba(212,168,83,'+tw.toFixed(3)+')'; x.fill(); } requestAnimationFrame(d); }
+  rs(); d(); addEventListener('resize',rs);
+})();
+
+/* ============================ init ============================ */
+buildInputs();
+compute();
+</script>
+</body>
+</html>
