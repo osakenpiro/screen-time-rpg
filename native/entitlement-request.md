@@ -1,5 +1,7 @@
 # Family Controls (Distribution) entitlement 申請文面
 
+> **🅢 ステータス（2026-06-22 SES-669）**: Apple Developer Program **未加入**を確認＝entitlement提出は **¥12,980/年の加入が前提**（無料アカウント不可・抜け道なし）。本人判断で **当面見送り**、Web版を入口に維持。加入トリガ＝(a)mailto待ち登録に反応／(b)Mac確保／(c)iOS複数本の意思固め。会費はアカウント全体（全iOSアプリ共通）。加入後はこのパケットで即提出可。
+
 > 申請先：Apple Developer → Contact → Request the Family Controls (Distribution) capability
 > （`developer.apple.com/contact/request/family-controls-distribution`）。
 > Apple は英語審査。下の **EN** をフォームに貼る。**JP** は自分用の対訳。
