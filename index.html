@@ -9,6 +9,16 @@
 <meta property="og:description" content="あなたの一週間は、どんな六角形？ 画面の時間をステータスに読み替える。攻略はバランス（調和）。">
 <meta property="og:url" content="https://osakenpiro.github.io/screen-time-rpg/">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="画面録 / Screen Time RPG">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:image" content="https://osakenpiro.github.io/screen-time-rpg/ogp.png?v=2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="画面録 — 六角形のステータスレーダーと調和スコア0.82">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="画面録 — スクリーンタイムRPG">
+<meta name="twitter:description" content="あなたの一週間は、どんな六角形？ 画面の時間をステータスに読み替える。攻略はバランス（調和）。">
+<meta name="twitter:image" content="https://osakenpiro.github.io/screen-time-rpg/ogp.png?v=2">
 <style>
   :root{
     --void:#0a0a0f; --void-deep:#06060a; --panel:#15141a; --panel-hi:#1c1a23; --line:#26242e;
@@ -202,11 +212,29 @@
     <div class="acts"><button class="btn" id="shareBtn">この一週間をシェア</button></div>
   </div>
 
+  <!-- WAITLIST / native demand -->
+  <div class="card" id="waitCard">
+    <h2>自動版を待つ<span class="jp">スクリーンタイムを“自動で”読むネイティブ版の need を数えています</span></h2>
+    <p class="tip" style="font-size:13px;margin:0 0 4px">この Web版は<b>手入力</b>。iOSのスクリーンタイムを<b>自動で</b>読む版は、技術的に別物の<b>ネイティブアプリ</b>（データは端末から出ない＝プライバシー100%・Appleの審査が要る）。
+    作る前に「欲しい人」を数えたい——興味があればメールを置いていって。<b>通知のためだけ</b>に使う。</p>
+    <div class="acts" style="align-items:center;margin-top:11px">
+      <input type="email" id="waitEmail" placeholder="you@example.com" autocomplete="email" style="flex:1;min-width:170px;background:#0f0e14;border:1px solid var(--line);border-radius:5px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:10px 11px;outline:none;">
+      <button class="btn" id="waitBtn">登録して待つ</button>
+    </div>
+    <p class="hint" id="waitMsg">押すとメールアプリが開くだけ（フォーム送信なし・第三者に渡らない）。<a href="https://x.com/kenpiro7" target="_blank" rel="noopener" style="color:var(--ink-2)">X(@kenpiro7) で告知を待つ →</a></p>
+  </div>
+
   <footer>
     <b>画面録 / GAMENROKU — Screen Time RPG</b><br>
     アプリの時間が6系統（哲学・創作・技術・発信・体力・探究）のXPになり、過剰は状態異常に。攻略は数字じゃなく<b style="color:var(--ink-2);font-style:normal">調和</b>。
     設計思想：Boolean→Float（時間は連続値）。#全人類UX改善 ／ Visionium・アイデア苗床。
     <div class="priv">🔒 入力はこの端末のブラウザ（localStorage）だけに保存。サーバー送信なし。iOS Screen Time APIは非公開のため v0 は手入力。</div>
+    <div class="sister" style="margin-top:11px;font-size:11px;color:var(--ink-3);line-height:2.0">姉妹ツール ／ #全人類UX改善：
+      <a href="https://osakenpiro.github.io/furiko/" target="_blank" rel="noopener">ふりこ（決断）</a> ・
+      <a href="https://osakenpiro.github.io/yutori/" target="_blank" rel="noopener">ゆとり（締切）</a> ・
+      <a href="https://osakenpiro.github.io/bakuun-scouter/" target="_blank" rel="noopener">爆運スカウター（運）</a> ・
+      <a href="https://osakenpiro.github.io/mitsuami/" target="_blank" rel="noopener">三つ編み（命名）</a>
+    </div>
   </footer>
 </div>
 
@@ -553,6 +581,33 @@ function shareBuild(){
   function rs(){ w=c.width=innerWidth; h=c.height=innerHeight; st=Array.from({length:Math.min(110,Math.floor(w*h/12000))},()=>({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.1+0.2,a:Math.random()*0.5+0.12,t:Math.random()*6.28})); }
   function d(){ x.clearRect(0,0,w,h); for(const s of st){ s.t+=0.009; const tw=s.a*(0.6+0.4*Math.sin(s.t)); x.beginPath(); x.arc(s.x,s.y,s.r,0,6.28); x.fillStyle='rgba(212,168,83,'+tw.toFixed(3)+')'; x.fill(); } requestAnimationFrame(d); }
   rs(); d(); addEventListener('resize',rs);
+})();
+
+/* ============================ waitlist (native demand) ============================ */
+(function(){
+  var btn=document.getElementById('waitBtn'), inp=document.getElementById('waitEmail'), msg=document.getElementById('waitMsg');
+  if(!btn||!inp||!msg) return;
+  // 任意：Cloudflare Worker 等を立てたらここにURLを入れると POST に切替（未設定なら mailto）。
+  var ENDPOINT='';
+  // 連絡先はスクレイプ避けのため実行時に組み立てる。
+  var to=['kenpikenpi64','gmail.com'].join('@');
+  var valid=function(e){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); };
+  function done(){ btn.textContent='登録した'; btn.disabled=true; msg.textContent='ありがとう。自動版ができたら知らせる。メールアプリが開かないときは '+to+' まで。'; }
+  function openMail(em){
+    var sub=encodeURIComponent('[画面録] 自動版を待つ');
+    var body=encodeURIComponent('画面録の自動版（ネイティブ）ができたら知らせてください。\n\n登録メール: '+em+'\n使っているiPhone / 用途（任意）: ');
+    location.href='mailto:'+to+'?subject='+sub+'&body='+body;
+  }
+  try{ if(localStorage.getItem('gamenroku_waitlisted')==='1'){ btn.textContent='登録済み'; btn.disabled=true; msg.textContent='ありがとう。自動版ができたら知らせる。'; } }catch(e){}
+  btn.addEventListener('click', function(){
+    var em=(inp.value||'').trim();
+    if(!valid(em)){ msg.textContent='メールアドレスの形式を確認して。'; inp.focus(); return; }
+    try{ localStorage.setItem('gamenroku_waitlisted','1'); }catch(e){}
+    if(ENDPOINT){
+      fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,tool:'gamenroku',ts:Date.now()})})
+        .then(done).catch(function(){ openMail(em); done(); });
+    } else { openMail(em); done(); }
+  });
 })();
 
 /* ============================ init ============================ */
