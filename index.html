@@ -115,11 +115,26 @@
   .trust b{color:var(--ink-2);font-weight:500;}
   .hero .titleb{margin-top:8px;font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink);letter-spacing:.04em;}
   .hero .titleb .lab{display:block;font-family:var(--sans);font-style:normal;font-size:9px;letter-spacing:.3em;color:var(--dim);text-transform:uppercase;margin-bottom:2px;}
+  .ob{display:none;position:fixed;inset:0;z-index:50;background:rgba(6,6,10,.86);align-items:center;justify-content:center;padding:20px;}
+  .ob-box{max-width:430px;width:100%;border:1px solid var(--gold-dim);border-radius:12px;background:linear-gradient(180deg,#12111a,#0b0a11);padding:22px 20px;}
+  .ob-h{font-family:var(--serif);font-style:italic;font-size:23px;color:var(--gold);margin-bottom:14px;text-align:center;}
+  .ob-card{font-size:13.5px;color:var(--ink-2);line-height:1.85;border:1px solid var(--line);border-radius:7px;padding:10px 12px;margin-bottom:9px;}
+  .ob-card b{color:var(--ink);font-weight:500;}
+  .ob .btn{width:100%;margin-top:6px;}
 </style>
 </head>
 <body>
 <canvas id="stars"></canvas>
 <div class="wrap">
+  <div class="ob" id="ob">
+    <div class="ob-box">
+      <div class="ob-h">画面録のよみかた</div>
+      <div class="ob-card"><b>① 主役は「調和」</b>。Lvや総XPじゃない。6系統のバランスが攻略。</div>
+      <div class="ob-card"><b>② 過剰は「状態異常」</b>。SNSの摂りすぎ＝呪い。ゼロにせず、ほどく。</div>
+      <div class="ob-card"><b>③ 攻略は足し算</b>。多い軸を削るより、手つかずの軸に火を入れる。</div>
+      <button class="btn" id="obStart">はじめる</button>
+    </div>
+  </div>
   <header>
     <div class="logo">画面録<small>GAMENROKU ／ SCREEN TIME RPG</small></div>
     <div class="tag">あなたの一週間は、どんな六角形？</div>
@@ -137,8 +152,11 @@
     <div id="inputs"></div>
     <h2 style="margin-top:16px">② よく開いたアプリ<span class="jp">（任意・カンマ区切り → 技として鑑定）</span></h2>
     <textarea class="appbox" id="apps" placeholder="例：GitHub, Clip Studio, X, Kindle, Duolingo, ヘルスケア"></textarea>
-    <div class="acts">
-      <button class="btn ghost" id="sampleBtn">サンプルを入れる</button>
+    <div class="acts" id="presetRow">
+      <button class="btn ghost" data-preset="light">軽め</button>
+      <button class="btn ghost" data-preset="heavy">重め</button>
+      <button class="btn ghost" data-preset="sns">SNS過多</button>
+      <button class="btn ghost" data-preset="dev">開発者</button>
       <button class="btn ghost" id="resetBtn">リセット</button>
     </div>
     <p class="hint">※ 時間は1週間ぶんの合計を「時間」で（例：7.5＝7時間30分）。データは端末のブラウザにだけ保存され、どこにも送られない。</p>
@@ -445,9 +463,25 @@ function tipText(d, realAil){
 }
 
 /* ============================ buttons ============================ */
-document.getElementById('sampleBtn').addEventListener('click',()=>{
-  H.hours={...SAMPLE}; H.apps=SAMPLE_APPS; save(); buildInputs(); compute();
-});
+const PRESETS = {
+  light:{hours:{social:3,enter:3,games:1,create:2,prod:4,dev:3,read:3,edu:2,health:3,travel:1,shop:1,other:1}, apps:'Kindle, ヘルスケア, Notion'},
+  heavy:{hours:{social:9,enter:10,games:6,create:3,prod:6,dev:5,read:2,edu:1,health:1,travel:1,shop:3,other:3}, apps:'YouTube, X, Netflix, Instagram'},
+  sns:{hours:{social:18,enter:6,games:3,create:1,prod:3,dev:2,read:1,edu:0,health:1,travel:0,shop:2,other:2}, apps:'X, TikTok, Instagram'},
+  dev:{hours:{social:3,enter:2,games:2,create:4,prod:7,dev:14,read:4,edu:2,health:2,travel:1,shop:1,other:2}, apps:'GitHub, VS Code, Notion, ChatGPT'},
+};
+function applyPreset(k){ const p=PRESETS[k]; if(!p) return; H.hours={...p.hours}; H.apps=p.apps; save(); buildInputs(); compute(); }
+(document.querySelectorAll('#presetRow [data-preset]')||[]).forEach(b=>b.addEventListener('click',()=>applyPreset(b.getAttribute('data-preset'))));
+
+function maybeOnboard(){
+  let done=false; try{ done=localStorage.getItem('gamenroku_onboarded')==='1'; }catch(e){}
+  if(done) return; const ob=document.getElementById('ob'); if(ob) ob.style.display='flex';
+}
+function closeOnboard(){
+  try{ localStorage.setItem('gamenroku_onboarded','1'); }catch(e){}
+  const ob=document.getElementById('ob'); if(ob) ob.style.display='none';
+  if(!H.hours || !Object.keys(H.hours).length) applyPreset('heavy');
+}
+{ const _o=document.getElementById('obStart'); if(_o) _o.addEventListener('click',closeOnboard); }
 document.getElementById('resetBtn').addEventListener('click',()=>{
   H={hours:{},apps:''}; save(); buildInputs(); compute();
 });
@@ -524,6 +558,7 @@ function shareBuild(){
 /* ============================ init ============================ */
 buildInputs();
 compute();
+maybeOnboard();
 </script>
 </body>
 </html>
