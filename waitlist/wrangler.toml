@@ -1,0 +1,9 @@
+name = "gamenroku-waitlist"
+main = "waitlist-worker.js"
+compatibility_date = "2026-06-22"
+
+# `wrangler d1 create gamenroku_waitlist` 実行後に返る database_id を貼る。
+[[d1_databases]]
+binding = "DB"
+database_name = "gamenroku_waitlist"
+database_id = "PASTE_AFTER_d1_create"
