@@ -111,6 +111,10 @@
   footer b{color:var(--gold-dim);font-family:var(--serif);font-style:italic;font-size:12.5px;}
   footer a{color:var(--ink-2);}
   .priv{color:var(--dim);font-size:10.5px;margin-top:8px;}
+  .trust{display:inline-flex;align-items:center;gap:7px;margin:6px 0 2px;font-size:11.5px;color:var(--ink-3);border:1px solid var(--line);border-radius:20px;padding:6px 13px;}
+  .trust b{color:var(--ink-2);font-weight:500;}
+  .hero .titleb{margin-top:8px;font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink);letter-spacing:.04em;}
+  .hero .titleb .lab{display:block;font-family:var(--sans);font-style:normal;font-size:9px;letter-spacing:.3em;color:var(--dim);text-transform:uppercase;margin-bottom:2px;}
 </style>
 </head>
 <body>
@@ -124,6 +128,8 @@
   <p class="lead">スクリーンタイムは「無駄にした時間」じゃない。画面の前で過ごした時間は、すでに<b>何かのステータス</b>を鍛えている。
   問いは「使いすぎたか（はい／いいえ）」じゃなく、<b>どんな偏りで character を組んでいるか</b>。
   攻略は時間をゼロにすることでも、数字を最大化することでもない——<b>調和を、整えること</b>。</p>
+
+  <div class="trust">🔒 <span>入力は<b>この端末のブラウザにだけ</b>・送信ゼロ</span></div>
 
   <!-- INPUT -->
   <div class="card">
@@ -145,6 +151,7 @@
     <div class="htrack"><i id="harmFill" style="width:0%"></i></div>
     <div class="verdict" id="verdict">時間を入れると、ビルドが立ち上がる。</div>
     <div class="badge" id="badge" style="display:none"></div>
+    <div class="titleb" id="titleBadge" style="display:none"><span class="lab">称号 TITLE</span><span id="titleText"></span></div>
     <div class="lvline">
       <span>鍛錬量 <b id="lv">0</b><span class="mut">Lv ⌊XP/847⌋・多ければいいわけじゃない</span></span>
       <span>総XP <b id="xp">0</b><span class="mut">＝今週の総時間（分）</span></span>
@@ -197,6 +204,7 @@ const AXES = [
   {k:'TEC', jp:'技術', col:'var(--c-tec)'},
 ];
 const AXI = Object.fromEntries(AXES.map((a,i)=>[a.k,i]));
+let LAST=null;
 
 // iOSカテゴリ → 6系統重み(合計≒1) ＋ 過剰→状態異常
 const CATS = [
@@ -323,6 +331,10 @@ function render(d){
     else { badge.className='badge'; badge.textContent= harmony>=0.6 ? '整いつつある' : '偏りビルド'; }
   }
   document.getElementById('verdict').textContent = verdictText(total,harmony,usedAxes,clear);
+  LAST=d;
+  // 称号 TITLE
+  const _t=titleFor(d), _tb=document.getElementById('titleBadge');
+  if(total>0 && _t){ _tb.style.display='block'; document.getElementById('titleText').textContent=_t; } else { _tb.style.display='none'; }
   // hexagon + bars
   drawHex(xp,afflicted);
   drawBars(xp,afflicted);
@@ -440,21 +452,66 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
   H={hours:{},apps:''}; save(); buildInputs(); compute();
 });
 document.getElementById('shareBtn').addEventListener('click',shareBuild);
+function titleFor(d){
+  if(!d || (d.total||0)<=0) return '';
+  const {xp,harmony,ailments=[]}=d;
+  const roles={PHI:'思索者',CRE:'創り手',TEC:'鍛冶師',OUT:'発信者',VIT:'養生家',EXP:'探究者'};
+  let topK=AXES[0].k,tv=-1; AXES.forEach(a=>{ if((xp[a.k]||0)>tv){tv=xp[a.k]||0;topK=a.k;} });
+  const topJp=AXES[AXI[topK]].jp, role=roles[topK];
+  const realAil=ailments.filter(a=>!a.skew);
+  const curse=realAil.slice().sort((a,b)=>b.inten-a.inten)[0];
+  if(harmony>=0.75 && realAil.length===0) return '均衡の賢者';
+  if(curse && curse.inten>=0.5) return `呪われし${role}`;
+  if(harmony>=0.6) return `${topJp}寄りの均衡者`;
+  if(harmony>=0.4) return `${topJp}の${role}`;
+  return `${topJp}の鬼`;
+}
+
+function drawHexCanvas(x,cx,cy,R,xp,afflicted){
+  const pt=(i,r)=>{ const a=(-90+60*i)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; };
+  const maxv=Math.max(...AXES.map(a=>xp[a.k]||0),1);
+  x.strokeStyle='rgba(200,184,160,0.13)'; x.lineWidth=1.5;
+  [0.25,0.5,0.75,1].forEach(g=>{ x.beginPath(); AXES.forEach((a,i)=>{ const[px,py]=pt(i,R*g); i?x.lineTo(px,py):x.moveTo(px,py); }); x.closePath(); x.stroke(); });
+  AXES.forEach((a,i)=>{ const[px,py]=pt(i,R); x.beginPath(); x.moveTo(cx,cy); x.lineTo(px,py); x.stroke(); });
+  x.beginPath(); AXES.forEach((a,i)=>{ const r=R*((xp[a.k]||0)/maxv); const[px,py]=pt(i,r); i?x.lineTo(px,py):x.moveTo(px,py); }); x.closePath();
+  x.fillStyle='rgba(212,168,83,0.16)'; x.fill(); x.strokeStyle='#d4a853'; x.lineWidth=3; x.stroke();
+  AXES.forEach((a,i)=>{ const r=R*((xp[a.k]||0)/maxv); const[px,py]=pt(i,r); x.beginPath(); x.arc(px,py,(xp[a.k]||0)>0?7:4,0,6.28); x.fillStyle=afflicted[a.k]>0?'#d97b6c':'#d4a853'; x.fill(); });
+  x.fillStyle='#b8b0a0'; x.font='30px sans-serif';
+  AXES.forEach((a,i)=>{ const[px,py]=pt(i,R+46); x.textAlign=Math.abs(px-cx)<8?'center':(px>cx?'left':'right'); x.fillText(a.jp,px,py+10); });
+}
+
+function buildShareCanvas(){
+  const d=LAST||{}; const xp=d.xp||{}; const harmony=d.harmony||0; const total=d.total||0;
+  const title=titleFor(d)||'スクリーンタイムRPG';
+  const W=1080,Hh=1080; const c=document.createElement('canvas'); c.width=W; c.height=Hh; const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,Hh); g.addColorStop(0,'#0e0c14'); g.addColorStop(1,'#06060a'); x.fillStyle=g; x.fillRect(0,0,W,Hh);
+  for(let i=0;i<90;i++){ x.globalAlpha=Math.random()*0.5+0.1; x.fillStyle='#d4a853'; x.beginPath(); x.arc(Math.random()*W,Math.random()*Hh,Math.random()*1.7+0.3,0,6.28); x.fill(); }
+  x.globalAlpha=1; x.textAlign='center';
+  x.fillStyle='#807868'; x.font='26px sans-serif'; x.fillText('画面録 ／ SCREEN TIME RPG', W/2, 92);
+  x.fillStyle='#d4a853'; x.font='italic 72px serif'; x.fillText(title, W/2, 178);
+  drawHexCanvas(x, W/2, 558, 298, xp, d.afflicted||{});
+  x.fillStyle='#807868'; x.font='25px sans-serif'; x.fillText('調和  HARMONY', W/2, 936);
+  x.fillStyle='#d4a853'; x.font='bold 88px monospace'; x.fillText(total>0?harmony.toFixed(2):'—', W/2, 1016);
+  x.fillStyle='#5a5448'; x.font='23px sans-serif'; x.fillText('osakenpiro.github.io/screen-time-rpg　#全人類UX改善', W/2, 1056);
+  return c;
+}
+
 function shareBuild(){
-  const xp={}; AXES.forEach(a=>xp[a.k]=0); let total=0;
-  CATS.forEach(c=>{ const h=H.hours[c.id]||0; const min=h*60; for(const k in c.w){xp[k]+=min*c.w[k]; total+=0;} });
-  const tot=AXES.reduce((s,a)=>s+xp[a.k],0);
-  let Hs=0; if(tot>0){ AXES.forEach(a=>{const p=xp[a.k]/tot; if(p>0)Hs-=p*Math.log(p);}); }
-  const harmony=tot>0?Hs/Math.log(AXES.length):0;
-  const top=AXES.slice().sort((a,b)=>xp[b.k]-xp[a.k]).slice(0,2).map(a=>a.jp).join('・');
-  const txt = tot>0
-    ? `画面録｜今週のビルド：調和 ${harmony.toFixed(2)}。よく育った系統は ${top}。あなたの一週間はどんな六角形？ #全人類UX改善`
-    : `画面録 — スクリーンタイムを“鍛えているステータス”として読むRPG。あなたの一週間はどんな六角形？ #全人類UX改善`;
   const url='https://osakenpiro.github.io/screen-time-rpg/';
-  if(navigator.share){ navigator.share({title:'画面録', text:txt, url}).catch(()=>{}); }
-  else { navigator.clipboard.writeText(txt+' '+url).then(()=>{
-    const b=document.getElementById('shareBtn'); const o=b.textContent; b.textContent='コピーした'; setTimeout(()=>b.textContent=o,1400);
-  }).catch(()=>{}); }
+  const d=LAST||{}; const ttl=titleFor(d);
+  const txt = (d.total>0)
+    ? `画面録｜今週の称号「${ttl}」・調和 ${(d.harmony||0).toFixed(2)}。あなたの一週間はどんな六角形？ #全人類UX改善`
+    : `画面録 — スクリーンタイムを“鍛えているステータス”として読むRPG。あなたの一週間はどんな六角形？ #全人類UX改善`;
+  const done=(m)=>{ const b=document.getElementById('shareBtn'); const o=b.textContent; b.textContent=m; setTimeout(()=>b.textContent=o,1600); };
+  let c=null; try{ c=buildShareCanvas(); }catch(e){}
+  if(!c || !c.toBlob){ if(navigator.clipboard){ navigator.clipboard.writeText(txt+' '+url).then(()=>done('文をコピーした')).catch(()=>{}); } return; }
+  c.toBlob(async (blob)=>{
+    const file = blob ? new File([blob],'gamenroku.png',{type:'image/png'}) : null;
+    try{ if(file && navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], text:txt, url}); return; } }catch(e){}
+    if(blob){ try{ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='gamenroku.png'; a.click(); }catch(e){} }
+    try{ await navigator.clipboard.writeText(txt+' '+url); }catch(e){}
+    done('画像を保存＆文をコピー');
+  }, 'image/png');
 }
 
 /* ============================ starfield ============================ */
